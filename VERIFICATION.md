@@ -100,10 +100,7 @@ deterministic_fuzz_100k
 
 The repository contains `.github/workflows/ci.yml`.
 
-1. Copy the final project contents into the existing local Git repository while preserving `.git`.
-2. Commit the changes and push `main`.
-3. Open **GitHub -> Actions -> 260827-DHA_BT_Telecoil_PD5 verification**.
-4. Require all three jobs to be green:
+1. Require all three jobs to be green:
 
 ```text
 Host verification (GCC)
@@ -112,16 +109,3 @@ Cortex-M4 cross-build
 ```
 
 The GCC job runs the complete host verification and CMake/CTest. The Clang job checks compiler portability. The Cortex-M4 job independently builds Debug, Testing and SelfTest with GNU Arm Embedded.
-
-## 7. Final evidence
-
-A concise evidence set is sufficient:
-
-- clean CubeIDE build;
-- Debug serial output showing priority, fault/mute, recovery and zero deadline misses;
-- `256 Tests 0 Failures 0 Ignored`;
-- `52 checks, 0 failures`;
-- GitHub Actions summary with all three jobs green;
-- optionally, one CI excerpt showing coverage, stress and mutation results.
-
-Before submission, import the **exact ZIP that will be uploaded** into a fresh CubeIDE workspace and clean-build Debug, Testing and SelfTest once more.
