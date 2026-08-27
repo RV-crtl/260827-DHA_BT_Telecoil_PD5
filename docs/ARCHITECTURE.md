@@ -2,8 +2,7 @@
 
 ## Layering
 
-<img width="1448" height="860" alt="architecture" src="https://github.com/user-attachments/assets/58a4471a-186e-4251-bfb8-15e8f97887f3" />
-
+![Software architecture](architecture.png)
 
 `Application/` owns policy and DSP only. `Board/` contains the minimal STM32F446RE-specific console and optional BT401 UART adapter.
 
