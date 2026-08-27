@@ -88,3 +88,48 @@ Matlab/             Supporting DSP validation
 .github/workflows/  Continuous-integration workflow
 docs/               Architecture notes
 ```
+
+## References
+
+1. STMicroelectronics, *RM0390 — STM32F446xx advanced Arm-based
+   32-bit MCUs Reference Manual*. Used for the thin `Board/` and
+   startup-layer register definitions and peripheral configuration.
+
+2. STMicroelectronics, *UM1724 — STM32 Nucleo-64 boards (MB1136)
+   User Manual*. Used for NUCLEO-F446RE board pin mapping, LD2 and
+   ST-LINK virtual COM-port context.
+
+3. *BT401 Bluetooth Audio Module User Manual, Version 1.6*.
+   Manufacturer documentation used for the serial framing and
+   AT-command meanings represented by `bt_profile`.
+
+4. ThrowTheSwitch, *Unity — A Test Framework for C*. The project
+   follows the Unity-style C test API and assertion syntax; the
+   compact files under `Tests/Unity/` are a local course-aligned
+   implementation rather than a copy of the current upstream Unity
+   source distribution.
+
+5. MathWorks, *MATLAB R2025a*. Used only for independent offline
+   verification of the implemented DSP equations and frequency
+   response; MATLAB is not a runtime dependency of the embedded
+   application.
+
+## Acknowledgements
+
+Selected high-level Bluetooth/audio-processing ideas were refactored
+from my earlier digital-hearing-aid prototype into hardware-independent
+modules for this submission. No STM32 HAL-dependent application logic
+was carried into the assessed `Application/` layer.
+
+Generative AI (OpenAI ChatGPT, GPT-5.6 Sol) was used during development
+for software-architecture discussion, C-code drafting and refactoring,
+unit-test generation, debugging of build/linker issues, host/CI
+verification setup, MATLAB verification-script drafting, and
+documentation review.
+
+All generated or adapted material was manually reviewed and validated
+through clean STM32CubeIDE builds, execution on the NUCLEO-F446RE,
+automated unit tests, independent regression checks, host testing,
+sanitizers, static analysis, coverage, mutation testing and GitHub
+Actions. Final engineering decisions and responsibility for the
+submitted work remain with the author.
