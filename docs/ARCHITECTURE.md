@@ -2,23 +2,8 @@
 
 ## Layering
 
-```text
-External observations / PCM / commands
-                |
-                v
-        ConnectivityService
-        /       |        \
-       v        v         v
- Controller  Telecoil   Audio/PCM helpers
-    |       detector/filter/dynamics
-    v
-request events/status
-    |
-    v
-ConnectivityActions callback port
-    |
- real adapter later OR mock/spy in tests
-```
+<img width="1448" height="860" alt="architecture" src="https://github.com/user-attachments/assets/58a4471a-186e-4251-bfb8-15e8f97887f3" />
+
 
 `Application/` owns policy and DSP only. `Board/` contains the minimal STM32F446RE-specific console and optional BT401 UART adapter. No RTOS scheduler, DMA, I2S peripheral or HAL dependency exists inside the assessed application.
 
