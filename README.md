@@ -1,5 +1,7 @@
 # 260827-DHA_BT_Telecoil_PD5
 
+[![260827-DHA_BT_Telecoil_PD5 verification](https://github.com/RV-crtl/260827-DHA_BT_Telecoil_PD5/actions/workflows/ci.yml/badge.svg)](https://github.com/RV-crtl/260827-DHA_BT_Telecoil_PD5/actions/workflows/ci.yml)
+
 Self-contained STM32CubeIDE project for the Bluetooth and telecoil application contribution, targeting the **NUCLEO-F446RE / STM32F446RE**.
 
 The assessed `Application/` layer is hardware-independent. It contains no STM32 HAL calls, device-register access or dynamic allocation. The small `Board/` layer is used only to run the portable application and tests on the F446.
