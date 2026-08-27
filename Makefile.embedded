@@ -1,0 +1,62 @@
+# Reproducible command-line cross-build for the NUCLEO-F446RE.
+# This supplements (does not replace) STM32CubeIDE project configurations.
+CROSS ?= arm-none-eabi-
+CC := $(CROSS)gcc
+SIZE := $(CROSS)size
+OBJCOPY := $(CROSS)objcopy
+
+MCU_FLAGS := -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard
+# The host verification path deliberately uses -Werror plus the strict warning
+# set.  The embedded cross-build has a different purpose: prove that the same
+# source is accepted and linked by GNU Arm Embedded.  Keep useful warnings,
+# but do not turn toolchain/version-specific diagnostics into CI failures.
+COMMON_FLAGS := $(MCU_FLAGS) -std=c11 -ffunction-sections -fdata-sections \
+                -Wall -Wextra -Os -g3
+INCLUDES := -IApplication/Inc -IBoard/Inc
+LDFLAGS := $(MCU_FLAGS) -TSTM32F446RETX_FLASH.ld -nostartfiles \
+           -Wl,--gc-sections -Wl,-Map=$(@:.elf=.map) --specs=nano.specs --specs=nosys.specs
+LDLIBS := -Wl,--start-group -lc -lm -lgcc -Wl,--end-group
+
+APP_SRC := $(sort $(wildcard Application/Src/*.c))
+BOARD_SRC := $(sort $(wildcard Board/Src/*.c))
+CORE_SRC := Core/Src/main.c Core/Src/syscalls.c Core/Startup/startup_stm32f446retx.s
+TEST_SRC := Tests/Unity/unity.c $(sort $(wildcard Tests/test_*.c))
+SELFTEST_SRC := IndependentTests/Src/self_test_runner.c
+
+BUILD := build/embedded
+DEBUG_ELF := $(BUILD)/Debug/260827-DHA_BT_Telecoil_PD5.elf
+TEST_ELF := $(BUILD)/Testing/260827-DHA_BT_Telecoil_PD5.elf
+SELFTEST_ELF := $(BUILD)/SelfTest/260827-DHA_BT_Telecoil_PD5.elf
+
+.PHONY: all debug testing selftest clean
+all: debug testing selftest
+
+debug: $(DEBUG_ELF)
+testing: $(TEST_ELF)
+selftest: $(SELFTEST_ELF)
+
+$(DEBUG_ELF): $(APP_SRC) $(BOARD_SRC) $(CORE_SRC)
+	@mkdir -p $(dir $@)
+	$(CC) $(COMMON_FLAGS) $(INCLUDES) -DSTM32F446xx -DEMBEDDED_TARGET -DDEBUG \
+		$^ -o $@ $(LDFLAGS) $(LDLIBS)
+	$(SIZE) $@
+	$(OBJCOPY) -O ihex $@ $(@:.elf=.hex)
+
+$(TEST_ELF): $(APP_SRC) $(BOARD_SRC) $(CORE_SRC) $(TEST_SRC)
+	@mkdir -p $(dir $@)
+	$(CC) $(COMMON_FLAGS) $(INCLUDES) -ITests -ITests/Unity \
+		-DSTM32F446xx -DEMBEDDED_TARGET -DDEBUG -DUNIT_TEST -DUNITY_INCLUDE_CONFIG_H \
+		$^ -o $@ $(LDFLAGS) $(LDLIBS)
+	$(SIZE) $@
+	$(OBJCOPY) -O ihex $@ $(@:.elf=.hex)
+
+$(SELFTEST_ELF): $(APP_SRC) $(BOARD_SRC) $(CORE_SRC) $(SELFTEST_SRC)
+	@mkdir -p $(dir $@)
+	$(CC) $(COMMON_FLAGS) $(INCLUDES) -IIndependentTests/Inc \
+		-DSTM32F446xx -DEMBEDDED_TARGET -DDEBUG -DSELF_TEST \
+		$^ -o $@ $(LDFLAGS) $(LDLIBS)
+	$(SIZE) $@
+	$(OBJCOPY) -O ihex $@ $(@:.elf=.hex)
+
+clean:
+	rm -rf $(BUILD)

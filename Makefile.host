@@ -1,0 +1,108 @@
+CC ?= gcc
+PYTHON ?= python3
+PROJECT := dha_connectivity_unity_tests
+SELFTEST_PROJECT := dha_connectivity_selftest
+FUZZ_PROJECT := dha_connectivity_fuzz
+BUILD_DIR := build-host
+COVERAGE_DIR := build-coverage
+
+APP_CPPFLAGS := -IApplication/Inc
+UNITY_CPPFLAGS := $(APP_CPPFLAGS) -ITests -ITests/Unity -DUNITY_INCLUDE_CONFIG_H
+SELFTEST_CPPFLAGS := $(APP_CPPFLAGS) -IIndependentTests/Inc
+CFLAGS := -std=c11 -Wall -Wextra -Werror -Wpedantic -Wconversion -Wshadow -Wstrict-prototypes -O2
+LDLIBS :=
+
+APP_SRC := $(sort $(wildcard Application/Src/*.c))
+BOARD_SRC := $(sort $(wildcard Board/Src/*.c))
+CORE_C_SRC := Core/Src/main.c
+
+UNITY_TEST_SRC := \
+    Tests/Unity/unity.c \
+    $(sort $(wildcard Tests/test_*.c)) \
+    Host/host_test_main.c
+
+SELFTEST_SRC := \
+    IndependentTests/Src/self_test_runner.c \
+    Host/host_selftest_main.c
+
+UNITY_SOURCES := $(APP_SRC) $(UNITY_TEST_SRC)
+SELFTEST_SOURCES := $(APP_SRC) $(SELFTEST_SRC)
+UNITY_TARGET := $(BUILD_DIR)/$(PROJECT)
+SELFTEST_TARGET := $(BUILD_DIR)/$(SELFTEST_PROJECT)
+FUZZ_TARGET := $(BUILD_DIR)/$(FUZZ_PROJECT)
+COVERAGE_TARGET := $(COVERAGE_DIR)/$(PROJECT)
+
+.PHONY: all test selftest fuzz sanitize analyze embedded-syntax coverage mutation verify clean
+
+all: $(UNITY_TARGET) $(SELFTEST_TARGET) $(FUZZ_TARGET)
+
+$(UNITY_TARGET): $(UNITY_SOURCES)
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(UNITY_CPPFLAGS) $(CFLAGS) $(UNITY_SOURCES) -o $@ $(LDLIBS)
+
+$(SELFTEST_TARGET): $(SELFTEST_SOURCES)
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(SELFTEST_CPPFLAGS) $(CFLAGS) $(SELFTEST_SOURCES) -o $@ $(LDLIBS)
+
+$(FUZZ_TARGET): $(APP_SRC) Host/fuzz_connectivity.c
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(APP_CPPFLAGS) $(CFLAGS) $(APP_SRC) Host/fuzz_connectivity.c -o $@ $(LDLIBS)
+
+test: $(UNITY_TARGET)
+	./$(UNITY_TARGET)
+
+selftest: $(SELFTEST_TARGET)
+	./$(SELFTEST_TARGET)
+
+fuzz: $(FUZZ_TARGET)
+	./$(FUZZ_TARGET)
+
+sanitize:
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(UNITY_CPPFLAGS) -std=c11 -Wall -Wextra -Werror -Wpedantic -O1 -g \
+		-fsanitize=address,undefined -fno-omit-frame-pointer $(UNITY_SOURCES) \
+		-o $(BUILD_DIR)/$(PROJECT)-sanitize $(LDLIBS)
+	ASAN_OPTIONS=detect_leaks=1 ./$(BUILD_DIR)/$(PROJECT)-sanitize
+	$(CC) $(SELFTEST_CPPFLAGS) -std=c11 -Wall -Wextra -Werror -Wpedantic -O1 -g \
+		-fsanitize=address,undefined -fno-omit-frame-pointer $(SELFTEST_SOURCES) \
+		-o $(BUILD_DIR)/$(SELFTEST_PROJECT)-sanitize $(LDLIBS)
+	ASAN_OPTIONS=detect_leaks=1 ./$(BUILD_DIR)/$(SELFTEST_PROJECT)-sanitize
+	$(CC) $(APP_CPPFLAGS) -std=c11 -Wall -Wextra -Werror -Wpedantic -O1 -g \
+		-fsanitize=address,undefined -fno-omit-frame-pointer $(APP_SRC) Host/fuzz_connectivity.c \
+		-o $(BUILD_DIR)/$(FUZZ_PROJECT)-sanitize $(LDLIBS)
+	ASAN_OPTIONS=detect_leaks=1 ./$(BUILD_DIR)/$(FUZZ_PROJECT)-sanitize
+
+analyze:
+	$(CC) $(UNITY_CPPFLAGS) -std=c11 -Wall -Wextra -Werror -fanalyzer -fsyntax-only $(UNITY_SOURCES)
+	$(CC) $(SELFTEST_CPPFLAGS) -std=c11 -Wall -Wextra -Werror -fanalyzer -fsyntax-only $(SELFTEST_SOURCES)
+	$(CC) $(APP_CPPFLAGS) -std=c11 -Wall -Wextra -Werror -fanalyzer -fsyntax-only $(APP_SRC) Host/fuzz_connectivity.c
+
+embedded-syntax:
+	$(CC) -IApplication/Inc -IBoard/Inc $(CFLAGS) -DSTM32F446xx -DEMBEDDED_TARGET -DDEBUG \
+		-fsyntax-only $(APP_SRC) $(BOARD_SRC) $(CORE_C_SRC)
+	$(CC) -std=gnu11 -Wall -Wextra -Werror -fsyntax-only Core/Src/syscalls.c
+	$(CC) -IApplication/Inc -IBoard/Inc -ITests -ITests/Unity $(CFLAGS) \
+		-DSTM32F446xx -DEMBEDDED_TARGET -DDEBUG -DUNIT_TEST -DUNITY_INCLUDE_CONFIG_H \
+		-fsyntax-only $(APP_SRC) $(BOARD_SRC) $(CORE_C_SRC) Tests/Unity/unity.c $(sort $(wildcard Tests/test_*.c))
+	$(CC) -IApplication/Inc -IBoard/Inc -IIndependentTests/Inc $(CFLAGS) \
+		-DSTM32F446xx -DEMBEDDED_TARGET -DDEBUG -DSELF_TEST \
+		-fsyntax-only $(APP_SRC) $(BOARD_SRC) $(CORE_C_SRC) IndependentTests/Src/self_test_runner.c
+
+coverage:
+	rm -rf $(COVERAGE_DIR)
+	@mkdir -p $(COVERAGE_DIR)
+	$(CC) $(UNITY_CPPFLAGS) -std=c11 -O0 --coverage $(UNITY_SOURCES) -o $(COVERAGE_TARGET) $(LDLIBS)
+	./$(COVERAGE_TARGET)
+	@for module in audio_dynamics audio_processing bt_profile connectivity_actions connectivity_controller connectivity_service control_protocol pcm_transport signal_quality telecoil_detector telecoil_filter; do \
+		gcov -b -c -o $(COVERAGE_DIR) $(COVERAGE_DIR)/$(PROJECT)-$$module.gcno; \
+	done
+	$(PYTHON) Scripts/coverage_check.py
+
+
+mutation:
+	$(PYTHON) Scripts/mutation_test.py
+
+verify: test selftest fuzz sanitize analyze embedded-syntax coverage mutation
+
+clean:
+	rm -rf $(BUILD_DIR) $(COVERAGE_DIR) *.gcov

@@ -1,0 +1,48 @@
+name: 260827-DHA_BT_Telecoil_PD5 verification
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  host-gcc:
+    name: Host verification (GCC)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Full Makefile.host verification
+        run: make -f Makefile.host verify
+      - name: CMake configure
+        run: cmake -S . -B build/ci-cmake -DCMAKE_BUILD_TYPE=Debug
+      - name: CMake build
+        run: cmake --build build/ci-cmake --parallel
+      - name: CTest
+        run: ctest --test-dir build/ci-cmake --output-on-failure
+
+  host-clang:
+    name: Host verification (Clang)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Build and run with Clang
+        env:
+          CC: clang
+        run: |
+          make -f Makefile.host clean
+          make -f Makefile.host test selftest fuzz
+
+  arm-cross-build:
+    name: Cortex-M4 cross-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Install GNU Arm Embedded toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-arm-none-eabi binutils-arm-none-eabi libnewlib-arm-none-eabi
+      - name: Build Debug, Testing and SelfTest firmware
+        run: make -f Makefile.embedded clean all

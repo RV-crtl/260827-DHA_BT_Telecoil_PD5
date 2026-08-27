@@ -1,0 +1,36 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {"major": 3, "minor": 20, "patch": 0},
+  "configurePresets": [
+    {
+      "name": "host-debug",
+      "displayName": "Host Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/cmake-host-debug",
+      "cacheVariables": {"CMAKE_BUILD_TYPE": "Debug"}
+    },
+    {
+      "name": "host-sanitize",
+      "displayName": "Host Sanitizers",
+      "inherits": "host-debug",
+      "binaryDir": "${sourceDir}/build/cmake-host-sanitize",
+      "cacheVariables": {"ENABLE_SANITIZERS": "ON"}
+    },
+    {
+      "name": "host-coverage",
+      "displayName": "Host Coverage",
+      "inherits": "host-debug",
+      "binaryDir": "${sourceDir}/build/cmake-host-coverage",
+      "cacheVariables": {"ENABLE_COVERAGE": "ON"}
+    }
+  ],
+  "buildPresets": [
+    {"name": "host-debug", "configurePreset": "host-debug"},
+    {"name": "host-sanitize", "configurePreset": "host-sanitize"},
+    {"name": "host-coverage", "configurePreset": "host-coverage"}
+  ],
+  "testPresets": [
+    {"name": "host-debug", "configurePreset": "host-debug", "output": {"outputOnFailure": true}},
+    {"name": "host-sanitize", "configurePreset": "host-sanitize", "output": {"outputOnFailure": true}}
+  ]
+}
