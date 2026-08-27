@@ -5,7 +5,7 @@
 <img width="1448" height="860" alt="architecture" src="https://github.com/user-attachments/assets/58a4471a-186e-4251-bfb8-15e8f97887f3" />
 
 
-`Application/` owns policy and DSP only. `Board/` contains the minimal STM32F446RE-specific console and optional BT401 UART adapter. No RTOS scheduler, DMA, I2S peripheral or HAL dependency exists inside the assessed application.
+`Application/` owns policy and DSP only. `Board/` contains the minimal STM32F446RE-specific console and optional BT401 UART adapter.
 
 ## State model
 
@@ -100,5 +100,3 @@ STATUS
 ```
 
 `connectivity_actions` converts controller request flags into injected callbacks for Bluetooth connect/reconnect and low-power entry/exit. A later hardware/RTOS adapter can implement those callbacks; tests use mocks/spies.
-
-Useful algorithms from the earlier integrated prototype were deliberately refactored into these portable modules rather than bringing UART/SAI/DMA/HAL coupling into PD5. Physical I2S timing, true RF-to-output latency, telecoil SNR and power remain later integration measurements.
