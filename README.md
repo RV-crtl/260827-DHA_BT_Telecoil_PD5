@@ -84,6 +84,7 @@ Tests/              Primary 256-test suite
 IndependentTests/   Supplementary 52-check suite
 Host/               Host runners and deterministic stress test
 Scripts/            Coverage and mutation helpers
+Matlab/             Supporting DSP validation
 .github/workflows/  Continuous-integration workflow
 docs/               Architecture notes
 ```
